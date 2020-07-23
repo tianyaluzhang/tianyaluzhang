@@ -1,0 +1,110 @@
+Python3 入门网络阻塞式
+
+Socket/SocketServer模块
+
+socket.socket([family[, type[, proto]]])
+family: 		AF_UNIX本地通信	AF_INET异地通信
+type: 			SOCK_STREAM（TCP）	SOCK_DGRAM（UDP）
+protocol: 		一般不填默认为0.							
+
+1、阻塞式
+
+#服务端
+# -*- coding: UTF-8 -*-
+# !C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python38\\phthon.exe
+
+import socket
+
+server_port = 10000
+server_host = "127.0.0.1"
+
+server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server_socket.bind((server_host, server_port))
+server_socket.listen(3)
+while True:
+    client_socket = server_socket.accept()
+    if client_socket != None:
+        client_string = client_socket[0].recv(1024)
+        print(client_socket[1], client_string.decode("utf-8"))
+        client_socket[0].close()
+
+#客户端
+# -*- coding: UTF-8 -*-
+# !C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python38\\phthon.exe
+
+import socket
+
+client_string = "来自客户端消息"
+server_port = 10000
+server_host = "127.0.0.1"
+client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+client_socket.connect((server_host, server_port))
+client_socket.send(client_string.encode("utf-8"))
+client_socket.close()
+----------------------------------------------------------------------------------
+#服务端
+# -*- coding: UTF-8 -*-
+# !C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python38\\phthon.exe
+import socket
+import time
+
+server_host = "127.0.0.1"
+server_port = 10000
+
+server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server_socket.bind((server_host, server_port))
+server_socket.listen(5)
+
+while True:  # 只能连接一个阻塞式 收 发   客户  发  收
+    client_socket = server_socket.accept()
+    if (client_socket != None):
+        print("来自客户端地址是：", client_socket[1])
+    while True:
+        try:
+            client_string = client_socket[0].recv(1024)
+        except BlockingIOError:
+            print("服务器读取客户端数据失败")
+            break
+        else:
+            print("来自客户端信息是：", client_string.decode("utf-8"))
+        if not client_string:
+            break
+
+        client_socket[0].send(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()).encode("utf-8"))
+
+    client_socket[0].close()
+
+server_socket.close()
+
+#客户端
+# -*- coding: UTF-8 -*-
+# !C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python38\\phthon.exe
+import socket
+import sys
+
+client_host = "127.0.0.1"
+client_port = 10000
+client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+try:
+    client_socket.connect((client_host, client_port))
+except ConnectionRefusedError:
+    print("不能连接到服务器")
+    sys.exit()
+
+while True:
+    client_string = input("输入发送消息：")
+    if not client_string:
+        break
+
+    client_socket.send(client_string.encode("utf-8"))
+    try:
+        server_string = client_socket.recv(1024)
+    except BlockingIOError:
+        print("客户端读取服务器数据失败")
+        break
+
+    if not server_string:
+        break
+    print(server_string.decode("utf-8"))
+
+client_socket.close()
